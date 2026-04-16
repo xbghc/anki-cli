@@ -1,0 +1,20 @@
+[project]
+name = "anki-cli"
+version = "0.1.0"
+description = "Headless Anki sync client with JSON I/O — login, query, sync against AnkiWeb without the Anki GUI"
+readme = "README.md"
+authors = [
+    { name = "xbghc", email = "ghm20191606@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "anki>=25.0",
+    "click>=8.1",
+]
+
+[project.scripts]
+anki = "anki_cli.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.9.21,<0.10.0"]
+build-backend = "uv_build"
