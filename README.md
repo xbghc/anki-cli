@@ -62,6 +62,26 @@ Queries use [Anki's search syntax](https://docs.ankiweb.net/searching.html): `de
 
 Write operations modify the local collection only. Run `anki sync` to push them to AnkiWeb.
 
+## MCP server
+
+For agents that can't shell out (sandboxed runtimes, pure-tool LLM hosts), the same operations are available as an MCP server over stdio.
+
+Install, then register in your MCP host config (e.g. Claude Desktop's `claude_desktop_config.json`, or chat-assistant's `~/.chat-assistant/config/mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "anki": {
+      "command": "anki-mcp"
+    }
+  }
+}
+```
+
+Exposed tools (same semantics as the CLI, all 11 except `login`): `sync`, `decks`, `notetypes`, `notes`, `note`, `cards`, `card`, `add_note`, `update_note`, `delete_note`, `answer_card`.
+
+**`login` is deliberately not exposed as an MCP tool** — logging in is a one-time setup action, not something an agent should trigger. Run `anki login` from the CLI during deployment (with `ANKIWEB_USERNAME` / `ANKIWEB_PASSWORD` in the env for headless setups), then the MCP server reads the saved hostkey.
+
 ## Design
 
 - **Not for interactive use** — all output is JSON on stdout, errors on stderr. Pair with `jq` for shell scripts, or call from an agent.
@@ -71,7 +91,9 @@ Write operations modify the local collection only. Run `anki sync` to push them 
 
 ## Status
 
-Phase 1 (login, sync, queries) and Phase 2 (note CRUD + `answer-card`) complete.
+- Phase 1 (login, sync, queries) — complete
+- Phase 2 (note CRUD + `answer-card`) — complete
+- MCP server (`anki-mcp`) — complete
 
 ## License
 
