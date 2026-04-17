@@ -154,13 +154,28 @@ def sync() -> None:
 @main.command()
 def decks() -> None:
     """List all decks as JSON."""
-    raise click.ClickException("not implemented")
+    from anki_cli._collection import open_collection
+
+    with open_collection() as col:
+        items = col.decks.all_names_and_ids()
+        payload = [{"id": int(d.id), "name": d.name} for d in items]
+
+    click.echo(json.dumps(payload, indent=2, ensure_ascii=False))
 
 
 @main.command()
 def notetypes() -> None:
-    """List all note types as JSON."""
-    raise click.ClickException("not implemented")
+    """List all note types as JSON, including each type's field names."""
+    from anki_cli._collection import open_collection
+
+    with open_collection() as col:
+        payload = []
+        for nt in col.models.all_names_and_ids():
+            model = col.models.get(nt.id)
+            fields = [f["name"] for f in model["flds"]] if model else []
+            payload.append({"id": int(nt.id), "name": nt.name, "fields": fields})
+
+    click.echo(json.dumps(payload, indent=2, ensure_ascii=False))
 
 
 @main.command()
@@ -168,14 +183,41 @@ def notetypes() -> None:
 @click.option("--limit", type=int, default=None, help="Truncate results to N notes.")
 def notes(query: tuple[str, ...], limit: int | None) -> None:
     """Query notes with Anki search syntax; emit JSON array."""
-    raise click.ClickException("not implemented")
+    from anki.errors import SearchError
+
+    from anki_cli._collection import open_collection
+    from anki_cli._serialize import note_to_dict
+
+    search = " ".join(query)
+    with open_collection() as col:
+        try:
+            nids = col.find_notes(search)
+        except SearchError as err:
+            raise click.ClickException(f"invalid query: {err}") from err
+        if limit is not None:
+            nids = nids[:limit]
+        payload = [note_to_dict(col, col.get_note(nid)) for nid in nids]
+
+    click.echo(json.dumps(payload, indent=2, ensure_ascii=False))
 
 
 @main.command()
 @click.argument("note_id", type=int)
 def note(note_id: int) -> None:
     """Get a single note by ID; emit JSON object."""
-    raise click.ClickException("not implemented")
+    from anki.errors import NotFoundError
+
+    from anki_cli._collection import open_collection
+    from anki_cli._serialize import note_to_dict
+
+    with open_collection() as col:
+        try:
+            n = col.get_note(note_id)
+        except NotFoundError as err:
+            raise click.ClickException(f"note {note_id} not found") from err
+        payload = note_to_dict(col, n)
+
+    click.echo(json.dumps(payload, indent=2, ensure_ascii=False))
 
 
 @main.command()
@@ -183,11 +225,38 @@ def note(note_id: int) -> None:
 @click.option("--limit", type=int, default=None, help="Truncate results to N cards.")
 def cards(query: tuple[str, ...], limit: int | None) -> None:
     """Query cards with Anki search syntax; emit JSON array."""
-    raise click.ClickException("not implemented")
+    from anki.errors import SearchError
+
+    from anki_cli._collection import open_collection
+    from anki_cli._serialize import card_to_dict
+
+    search = " ".join(query)
+    with open_collection() as col:
+        try:
+            cids = col.find_cards(search)
+        except SearchError as err:
+            raise click.ClickException(f"invalid query: {err}") from err
+        if limit is not None:
+            cids = cids[:limit]
+        payload = [card_to_dict(col.get_card(cid)) for cid in cids]
+
+    click.echo(json.dumps(payload, indent=2, ensure_ascii=False))
 
 
 @main.command()
 @click.argument("card_id", type=int)
 def card(card_id: int) -> None:
     """Get a single card by ID (includes scheduling state); emit JSON object."""
-    raise click.ClickException("not implemented")
+    from anki.errors import NotFoundError
+
+    from anki_cli._collection import open_collection
+    from anki_cli._serialize import card_to_dict
+
+    with open_collection() as col:
+        try:
+            c = col.get_card(card_id)
+        except NotFoundError as err:
+            raise click.ClickException(f"card {card_id} not found") from err
+        payload = card_to_dict(c)
+
+    click.echo(json.dumps(payload, indent=2, ensure_ascii=False))
