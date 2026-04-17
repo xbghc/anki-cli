@@ -25,9 +25,18 @@ anki notes "deck:Japanese tag:verb" --limit 20
 
 # Inspect one card's scheduling state
 anki card 1234567890
+
+# Add a note (reads JSON from stdin)
+echo '{"deck":"Japanese","notetype":"Basic","fields":{"Front":"食べる","Back":"to eat"},"tags":["verb"]}' \
+  | anki add-note
+
+# Rate a card and advance its SRS schedule
+anki answer-card 1234567890 good
 ```
 
 ## Commands
+
+**Read-only:**
 
 | Command | Purpose |
 |---------|---------|
@@ -40,7 +49,18 @@ anki card 1234567890
 | `anki cards QUERY` | Search cards; JSON array with scheduling state. |
 | `anki card CARD_ID` | Single card by ID. |
 
+**Write:**
+
+| Command | Input | Purpose |
+|---------|-------|---------|
+| `anki add-note` | stdin JSON `{deck, notetype, fields, tags?}` | Create a new note. |
+| `anki update-note NOTE_ID` | stdin JSON `{fields?, tags?}` | Merge field values into existing note; tags are replaced wholesale. |
+| `anki delete-note NOTE_ID` | — | Remove the note and its cards. |
+| `anki answer-card CARD_ID {again\|hard\|good\|easy}` | — | Rate a card; FSRS / SM-2 scheduler advances its state. |
+
 Queries use [Anki's search syntax](https://docs.ankiweb.net/searching.html): `deck:...`, `tag:...`, `is:due`, `added:7`, `-tag:suspended`, etc.
+
+Write operations modify the local collection only. Run `anki sync` to push them to AnkiWeb.
 
 ## Design
 
@@ -51,7 +71,7 @@ Queries use [Anki's search syntax](https://docs.ankiweb.net/searching.html): `de
 
 ## Status
 
-Phase 1 complete: login, sync, and read-only queries. Future phases may add note CRUD (create, update, delete) and scheduler operations (`answer-card` for SRS review automation).
+Phase 1 (login, sync, queries) and Phase 2 (note CRUD + `answer-card`) complete.
 
 ## License
 
