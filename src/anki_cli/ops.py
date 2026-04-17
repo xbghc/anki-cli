@@ -244,6 +244,31 @@ def do_delete_note(note_id: int) -> dict[str, Any]:
     return {"status": "deleted", "id": note_id, "count": int(result.count)}
 
 
+def do_rename_deck(old_name: str, new_name: str) -> dict[str, Any]:
+    if not old_name or not old_name.strip():
+        raise OpsError("old_name is required")
+    if not new_name or not new_name.strip():
+        raise OpsError("new_name is required")
+    old_name = old_name.strip()
+    new_name = new_name.strip()
+
+    with open_collection() as col:
+        deck_id = col.decks.id_for_name(old_name)
+        if not deck_id:
+            raise OpsError(f"deck not found: {old_name}")
+        existing = col.decks.id_for_name(new_name)
+        if existing and int(existing) != int(deck_id):
+            raise OpsError(f"a different deck named '{new_name}' already exists")
+        run_off_main(col.decks.rename, int(deck_id), new_name)
+
+    return {
+        "status": "ok",
+        "deck_id": int(deck_id),
+        "old_name": old_name,
+        "new_name": new_name,
+    }
+
+
 def do_answer_card(card_id: int, rating: str) -> dict[str, Any]:
     from anki.errors import NotFoundError
     from anki.scheduler_pb2 import CardAnswer

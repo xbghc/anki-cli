@@ -154,6 +154,14 @@ def delete_note(note_id: int) -> None:
     _emit(_guard(ops.do_delete_note, note_id))
 
 
+@main.command("rename-deck")
+@click.argument("old_name")
+@click.argument("new_name")
+def rename_deck(old_name: str, new_name: str) -> None:
+    """Rename a deck. Children (Prefix::Child) are updated automatically."""
+    _emit(_guard(ops.do_rename_deck, old_name, new_name))
+
+
 @main.command("answer-card")
 @click.argument("card_id", type=int)
 @click.argument(

@@ -134,6 +134,19 @@ def delete_note(note_id: int) -> str:
 
 
 @mcp.tool()
+def rename_deck(old_name: str, new_name: str) -> str:
+    """Rename a deck. Works on any deck (sub-decks under a prefix included —
+    e.g. renaming "Japanese" also moves "Japanese::Verbs" to
+    "<new_name>::Verbs"). Fails if `old_name` does not exist or if `new_name`
+    collides with a different existing deck.
+
+    Writes affect the local collection only; call `sync` afterward to
+    push to AnkiWeb so phone/desktop reflect the change.
+    """
+    return _emit(ops.do_rename_deck(old_name, new_name))
+
+
+@mcp.tool()
 def answer_card(card_id: int, rating: str) -> str:
     """Rate a card to advance its SRS schedule.
 
