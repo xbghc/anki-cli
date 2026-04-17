@@ -29,11 +29,22 @@ def main() -> None:
     help="Custom sync endpoint (default: AnkiWeb).",
 )
 def login(username: str | None, password: str | None, endpoint: str | None) -> None:
-    """Log into AnkiWeb and save sync credentials locally."""
+    """Log into AnkiWeb and save sync credentials locally.
+
+    Credentials resolve in this order: CLI flag → env var (ANKIWEB_USERNAME /
+    ANKIWEB_PASSWORD) → interactive prompt. Agents running headlessly should
+    set the env vars in .env and omit the flags.
+    """
+    import os
+
     from anki._backend import RustBackend
     from anki.errors import SyncError
     from anki.sync_pb2 import SyncLoginRequest
 
+    if not username:
+        username = os.environ.get("ANKIWEB_USERNAME")
+    if not password:
+        password = os.environ.get("ANKIWEB_PASSWORD")
     if not username:
         username = click.prompt("Username (email)", type=str)
     if not password:
