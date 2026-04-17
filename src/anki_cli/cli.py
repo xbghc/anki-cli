@@ -403,6 +403,7 @@ def answer_card(card_id: int, rating: str) -> None:
         except NotFoundError as err:
             raise click.ClickException(f"card {card_id} not found") from err
 
+        c.start_timer()
         states = run_off_main(col._backend.get_scheduling_states, card_id)
         answer = col.sched.build_answer(card=c, states=states, rating=rating_value)
         run_off_main(col.sched.answer_card, answer)
