@@ -71,11 +71,84 @@ def login(username: str | None, password: str | None, endpoint: str | None) -> N
 
 
 @main.command()
-@click.option("--pull", "mode", flag_value="pull", help="Only download remote → local.")
-@click.option("--push", "mode", flag_value="push", help="Only upload local → remote.")
-def sync(mode: str | None) -> None:
-    """Synchronize with AnkiWeb (default: pull + push)."""
-    raise click.ClickException("not implemented")
+def sync() -> None:
+    """Synchronize the local collection with AnkiWeb (bidirectional incremental)."""
+    from anki.collection import Collection
+    from anki.errors import SyncError
+    from anki.sync import SyncAuth
+    from anki.sync_pb2 import SyncCollectionResponse
+
+    from anki_cli._pylib import run_off_main
+    from anki_cli.paths import collection_path, data_dir
+
+    cfg = config.load()
+    if cfg is None:
+        raise click.ClickException("not logged in; run `anki login` first")
+
+    data_dir().mkdir(parents=True, exist_ok=True)
+    auth = SyncAuth(
+        hkey=cfg.hostkey,
+        endpoint=cfg.endpoint or None,
+        io_timeout_secs=30,
+    )
+
+    col = Collection(str(collection_path()))
+    try:
+        try:
+            result = run_off_main(col.sync_collection, auth, False)
+        except SyncError as err:
+            raise click.ClickException(f"sync failed: {err}") from err
+
+        if result.new_endpoint:
+            cfg.endpoint = result.new_endpoint
+            config.save(cfg)
+            auth = SyncAuth(
+                hkey=cfg.hostkey,
+                endpoint=result.new_endpoint,
+                io_timeout_secs=30,
+            )
+
+        required = result.required
+        action: str
+        if required == SyncCollectionResponse.NO_CHANGES:
+            action = "no_changes"
+        elif required == SyncCollectionResponse.NORMAL_SYNC:
+            action = "normal_sync"
+        elif required == SyncCollectionResponse.FULL_DOWNLOAD:
+            col.close_for_full_sync()
+            try:
+                run_off_main(
+                    col.full_upload_or_download,
+                    auth=auth,
+                    server_usn=None,
+                    upload=False,
+                )
+            except SyncError as err:
+                raise click.ClickException(f"full download failed: {err}") from err
+            action = "full_download"
+        elif required == SyncCollectionResponse.FULL_UPLOAD:
+            raise click.ClickException(
+                "FULL_UPLOAD required — remote collection is empty. "
+                "Refusing automatic upload; resolve manually if intended."
+            )
+        else:  # FULL_SYNC
+            raise click.ClickException(
+                "FULL_SYNC required — local and remote have diverged. "
+                "Resolve manually (choose upload or download) before retrying."
+            )
+    finally:
+        col.close()
+
+    click.echo(
+        json.dumps(
+            {
+                "status": "ok",
+                "action": action,
+                "server_message": result.server_message,
+            },
+            indent=2,
+        )
+    )
 
 
 @main.command()
