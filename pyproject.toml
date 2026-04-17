@@ -10,10 +10,12 @@ requires-python = ">=3.11"
 dependencies = [
     "anki>=25.0",
     "click>=8.1",
+    "mcp>=1.0",
 ]
 
 [project.scripts]
 anki = "anki_cli.cli:main"
+anki-mcp = "anki_cli.mcp_server:main"
 
 [build-system]
 requires = ["uv_build>=0.9.21,<0.10.0"]
