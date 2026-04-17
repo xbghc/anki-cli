@@ -306,7 +306,7 @@ def add_note() -> None:
             note.tags = list(tags)
 
         run_off_main(col.add_note, note, deck_id)
-        payload = note_to_dict(col, note)
+        payload = note_to_dict(col, col.get_note(note.id))
 
     click.echo(json.dumps(payload, indent=2, ensure_ascii=False))
 
@@ -351,7 +351,7 @@ def update_note(note_id: int) -> None:
             n.tags = list(patch["tags"])
 
         run_off_main(col.update_note, n)
-        payload = note_to_dict(col, n)
+        payload = note_to_dict(col, col.get_note(note_id))
 
     click.echo(json.dumps(payload, indent=2, ensure_ascii=False))
 
